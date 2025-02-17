@@ -4,7 +4,7 @@ import { Alert, Button, Image, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../../constants/colors";
 import OutlinedButton from "../../UI/OutlinedButton";
 
-function ImagePicker() {
+function ImagePicker({onTakeImage}) {
     const [pickedImage, setPickedImage] = useState();
     const [cameraPermissionInformation, requestPermission] = useCameraPermissions();
     async function verifyPermissions() {
@@ -25,15 +25,15 @@ function ImagePicker() {
         const hasPermission = await verifyPermissions();
         
         if (!hasPermission) return;
-        const image = await launchCameraAsync({
+        const result = await launchCameraAsync({
             allowsEditing: true,
             aspect: [16, 9],
             quality: 0.5,
         });
 
-        console.log(image.assets[0].uri)
-
-        setPickedImage(image.assets[0].uri);
+        const image = result.assets[0].uri;
+        setPickedImage(image);
+        onTakeImage(image);
     };
 
     return (

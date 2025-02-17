@@ -2,14 +2,42 @@ import { Alert, Image, StyleSheet, Text, View } from "react-native";
 import OutlinedButton from "../../UI/OutlinedButton";
 import { Colors } from "../../constants/colors";
 import { getCurrentPositionAsync, PermissionStatus, useForegroundPermissions } from "expo-location";
-import { useState } from "react";
-import getMapPreview from "../../util/location";
-import { useNavigation } from "@react-navigation/native";
+import { useEffect, useState } from "react";
+import { getAddress, getMapPreview } from "../../util/location";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
-function LocationPicker() {
+function LocationPicker({ onPickLocation }) {
     const navigation = useNavigation();
+    const route = useRoute();
     const [pickedLocation, setPickedLocation] = useState();
     const [locationPermissionInformation, requestPermission] = useForegroundPermissions();
+    const mapPickedLocation = route.params?.selectedLocation;
+    useEffect(() => {
+        async function handleLocation() {
+            if (mapPickedLocation) {
+                setPickedLocation({
+                    lat: mapPickedLocation.latitude,
+                    lng: mapPickedLocation.longitude
+                });
+                const address = await getAddress(mapPickedLocation);
+                onPickLocation({ ...mapPickedLocation, address });
+            }
+        }
+
+        handleLocation();
+    }, [mapPickedLocation, onPickLocation]);
+
+    useEffect(() => {
+        async function handleLocation() {
+            if (pickedLocation) {
+                const address = await getAddress(pickedLocation);
+                onPickLocation({ ...pickedLocation, address });
+            }
+        }
+
+        handleLocation();
+    }, [pickedLocation, onPickLocation]);
+
     async function verifyPermissions() {
         if (locationPermissionInformation.status === PermissionStatus.UNDETERMINED) {
             const permissionResponse = await requestPermission();
@@ -26,7 +54,7 @@ function LocationPicker() {
     };
     async function getLocationHandler() {
         const hasPermission = await verifyPermissions();
-        if(!hasPermission) return;
+        if (!hasPermission) return;
 
         const location = await getCurrentPositionAsync();
         setPickedLocation({
@@ -36,20 +64,19 @@ function LocationPicker() {
     };
     function pickOnMapHandler() {
         navigation.navigate('Map');
-        console.log(navigation.getState())
     }
     return (
         <View>
             <View style={styles.mapPreview}>
                 {
                     pickedLocation ?
-                    <Image style={styles.image} source={{uri: getMapPreview(pickedLocation)}} /> :
-                    <Text>선택된 위치가 없어요.</Text>
-                    }
+                        <Image style={styles.image} source={{ uri: getMapPreview(pickedLocation) }} /> :
+                        <Text>선택된 장소가 없어요.</Text>
+                }
             </View>
             <View style={styles.actions}>
                 <OutlinedButton icon="location" onPress={getLocationHandler}>
-                    위치 찾기
+                    장소 찾기
                 </OutlinedButton>
                 <OutlinedButton icon="map" onPress={pickOnMapHandler}>
                     지도에서 선택
